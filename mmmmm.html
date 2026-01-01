@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Kids Zone - Fun Learning</title>
+    
+    <!-- Tailwind CSS for Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- React & ReactDOM (No Build Required) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel to compile React in Browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Custom Animations */
+        @keyframes fade-in { 0%{opacity:0} 100%{opacity:1} }
+        @keyframes bounce-in { 0%{transform:scale(0)} 60%{transform:scale(1.2)} 100%{transform:scale(1)} }
+        @keyframes wiggle { 0%,100%{transform:rotate(-10deg)} 50%{transform:rotate(10deg)} }
+        @keyframes wiggle-reverse { 0%,100%{transform:rotate(10deg)} 50%{transform:rotate(-10deg)} }
+        @keyframes float-up { 0%{transform:translateY(100px); opacity:0} 100%{transform:translateY(-100px); opacity:1} }
+        @keyframes spin-slow { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+        @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-15px)} }
+        
+        .stroke-text {
+            -webkit-text-stroke: 2px #d97706; /* Fallback */
+        }
+        @media (min-width: 768px) {
+            .stroke-text { -webkit-text-stroke: 3px #d97706; }
+        }
+    </style>
+</head>
+<body class="bg-indigo-50 select-none">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- Icons (Inlined to prevent errors) ---
+        const IconHome = ({size=24, className}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
+        const IconTrophy = ({size=24, className}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>;
+        const IconVolume2 = ({size=24, className}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>;
+        const IconVolumeX = ({size=24, className}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" x2="17" y1="9" y2="15"/><line x1="17" x2="23" y1="9" y2="15"/></svg>;
+        const IconX = ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 18 18"/></svg>;
+        const IconMail = ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>;
+        const IconShield = ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>;
+        const IconHeart = ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>;
+        const IconBook = ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>;
+        const IconHelp = ({size=24}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>;
+
+        // --- Visual Components ---
+
+        const Monster = ({ mood }) => {
+            const color = mood === 'happy' ? '#4ade80' : mood === 'sad' ? '#f87171' : '#60a5fa';
+            return (
+                <div className="relative w-24 h-24 md:w-28 md:h-28 mx-auto transition-transform duration-300 transform hover:scale-105">
+                <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-lg">
+                    <rect x="20" y="20" width="60" height="60" rx="15" fill={color} />
+                    <circle cx="35" cy="45" r="8" fill="white" />
+                    <circle cx="65" cy="45" r="8" fill="white" />
+                    <circle cx="35" cy="45" r="3" fill="black" />
+                    <circle cx="65" cy="45" r="3" fill="black" />
+                    {mood === 'happy' && <path d="M 35 65 Q 50 80 65 65" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" />}
+                    {mood === 'sad' && <path d="M 35 70 Q 50 55 65 70" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" />}
+                    {mood === 'neutral' && <line x1="35" y1="65" x2="65" y2="65" stroke="white" strokeWidth="3" strokeLinecap="round" />}
+                    <line x1="50" y1="20" x2="50" y2="5" stroke={color} strokeWidth="4" />
+                    <circle cx="50" cy="5" r="5" fill="#fbbf24" />
+                </svg>
+                </div>
+            );
+        };
+
+        const Celebration = ({ text }) => (
+            <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in" />
+                <div className="relative flex flex-col items-center animate-bounce-in scale-125 md:scale-150">
+                    <div className="absolute -top-16 -left-16 md:-top-20 md:-left-20 text-6xl md:text-8xl animate-wiggle">🎉</div>
+                    <div className="absolute -top-16 -right-16 md:-top-20 md:-right-20 text-6xl md:text-8xl animate-wiggle-reverse">✨</div>
+                    
+                    <div className="text-8xl md:text-9xl filter drop-shadow-2xl animate-spin-slow mb-4">🌟</div>
+                    
+                    <h2 className="text-5xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-orange-400 to-yellow-300 drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)] animate-pulse tracking-wider stroke-text text-center px-4">
+                        {text}
+                    </h2>
+
+                    <div className="absolute bottom-0 left-[-50px] md:left-[-100px] text-5xl md:text-7xl animate-float-up">🎈</div>
+                    <div className="absolute bottom-0 right-[-50px] md:right-[-100px] text-5xl md:text-7xl animate-float-up delay-100">🎈</div>
+                </div>
+            </div>
+        );
+
+        // --- Logic Hooks ---
+
+        const useSound = () => {
+            const [isMuted, setIsMuted] = useState(false);
+            const audioCtxRef = useRef(null);
+
+            const initAudio = () => {
+                if (!audioCtxRef.current) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) audioCtxRef.current = new AudioContext();
+                }
+                if (audioCtxRef.current?.state === 'suspended') audioCtxRef.current.resume();
+            };
+
+            const playSound = (type) => {
+                if (isMuted || !audioCtxRef.current) return;
+                const ctx = audioCtxRef.current;
+                const osc = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                osc.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                const now = ctx.currentTime;
+
+                if (type === 'correct') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.2);
+                    gainNode.gain.setValueAtTime(0.3, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+                    
+                    const osc2 = ctx.createOscillator();
+                    const gain2 = ctx.createGain();
+                    osc2.type = 'triangle';
+                    osc2.frequency.setValueAtTime(600, now);
+                    osc2.frequency.exponentialRampToValueAtTime(1800, now + 0.2);
+                    gain2.gain.setValueAtTime(0.1, now);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                    osc2.connect(gain2);
+                    gain2.connect(ctx.destination);
+                    osc2.start(now);
+                    osc2.stop(now + 0.6);
+
+                    osc.start(now);
+                    osc.stop(now + 0.8);
+                } else if (type === 'wrong') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(200, now);
+                    osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+                    gainNode.gain.setValueAtTime(0.2, now);
+                    gainNode.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'pop') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                    gainNode.gain.setValueAtTime(0.1, now);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'flip') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, now);
+                    gainNode.gain.setValueAtTime(0.1, now);
+                    gainNode.gain.linearRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                }
+            };
+            return { isMuted, setIsMuted, playSound, initAudio };
+        };
+
+        // --- Main Game Component ---
+
+        function MathKidsZone() {
+            const [screen, setScreen] = useState('menu');
+            const [score, setScore] = useState(0);
+            const [highScore, setHighScore] = useState(0);
+            const [activeModal, setActiveModal] = useState(null);
+            
+            // Game Data
+            const [question, setQuestion] = useState(null);
+            const [options, setOptions] = useState([]);
+            const [feedback, setFeedback] = useState(null);
+            const [praise, setPraise] = useState(''); 
+            const [monsterMood, setMonsterMood] = useState('neutral');
+            const [memoryCards, setMemoryCards] = useState([]);
+            const [flippedIndices, setFlippedIndices] = useState([]);
+
+            const { isMuted, setIsMuted, playSound, initAudio } = useSound();
+
+            const handleInteraction = () => initAudio();
+
+            const getPraise = () => {
+                const words = ['Awesome!', 'Superb!', 'Genius!', 'Great Job!', 'Amazing!', 'Brilliant!'];
+                return words[Math.floor(Math.random() * words.length)];
+            };
+
+            const generateProblem = (type) => {
+                const num1 = Math.floor(Math.random() * 10) + 1;
+                const num2 = Math.floor(Math.random() * 10) + 1;
+                
+                if (type === 'subtraction') {
+                    let [n1, n2] = num1 < num2 ? [num2, num1] : [num1, num2];
+                    return { q: `${n1} - ${n2}`, a: n1 - n2, type: '-' };
+                } else if (type === 'operator') {
+                    const ops = ['+', '-'];
+                    const op = ops[Math.floor(Math.random() * ops.length)];
+                    let n1 = num1, n2 = num2, ans;
+                    if (op === '+') ans = n1 + n2;
+                    else {
+                        if (n1 < n2) [n1, n2] = [n2, n1];
+                        ans = n1 - n2;
+                    }
+                    return { num1: n1, num2: n2, ans: ans, op: op };
+                } else {
+                    return { q: `${num1} + ${num2}`, a: num1 + num2, type: '+' };
+                }
+            };
+
+            const generateTrain = () => {
+                const start = Math.floor(Math.random() * 5) + 1;
+                const step = Math.floor(Math.random() * 3) + 1; 
+                const missingIndex = Math.floor(Math.random() * 4); 
+                
+                const train = [];
+                for(let i=0; i<4; i++) {
+                    train.push(start + (i * step));
+                }
+                const answer = train[missingIndex];
+                train[missingIndex] = '?';
+                
+                const opts = new Set([answer]);
+                while(opts.size < 3) {
+                    opts.add(answer + Math.floor(Math.random() * 5) - 2);
+                }
+                const finalOpts = Array.from(opts).filter(n => n > 0 && n !== answer).slice(0, 2);
+                finalOpts.push(answer);
+                
+                return { sequence: train, answer: answer, options: finalOpts.sort(() => Math.random() - 0.5) };
+            };
+
+            const generateCroc = () => {
+                const v1 = Math.floor(Math.random() * 20) + 1;
+                const v2 = Math.floor(Math.random() * 20) + 1;
+                let rel = '=';
+                if(v1 > v2) rel = '>';
+                if(v1 < v2) rel = '<';
+                return { v1, v2, rel };
+            };
+
+            const generateMemory = () => {
+                const pairs = [];
+                for(let i=0; i<3; i++) {
+                    const p = generateProblem(Math.random() > 0.5 ? 'addition' : 'subtraction');
+                    pairs.push({ id: i*2, content: p.q, val: p.a, type: 'q', matched: false, flipped: false });
+                    pairs.push({ id: i*2+1, content: p.a, val: p.a, type: 'a', matched: false, flipped: false });
+                }
+                return pairs.sort(() => Math.random() - 0.5);
+            };
+
+            const startGame = (mode) => {
+                handleInteraction();
+                playSound('pop');
+                setScreen(mode);
+                setScore(0);
+                setFeedback(null);
+                setMonsterMood('neutral');
+                nextLevel(mode);
+            };
+
+            const nextLevel = (mode) => {
+                setFeedback(null);
+                setMonsterMood('neutral');
+                
+                if (mode === 'balloon') {
+                    const p = generateProblem(Math.random() > 0.5 ? 'addition' : 'subtraction');
+                    setQuestion(p);
+                    const opts = new Set([p.a]);
+                    while(opts.size < 3) opts.add(p.a + Math.floor(Math.random() * 6) - 3);
+                    setOptions(Array.from(opts).filter(n=>n>=0).slice(0,3).sort(() => Math.random() - 0.5));
+                } 
+                else if (mode === 'monster') {
+                    const p = generateProblem('addition');
+                    setQuestion(p);
+                    const opts = new Set([p.a]);
+                    while(opts.size < 3) opts.add(p.a + Math.floor(Math.random() * 5) - 2);
+                    setOptions(Array.from(opts).filter(n=>n>=0).slice(0,3).sort(() => Math.random() - 0.5));
+                }
+                else if (mode === 'sign') {
+                    const p = generateProblem('operator');
+                    setQuestion(p);
+                    setOptions(['+', '-']);
+                }
+                else if (mode === 'train') {
+                    const t = generateTrain();
+                    setQuestion(t);
+                    setOptions(t.options);
+                }
+                else if (mode === 'croc') {
+                    const c = generateCroc();
+                    setQuestion(c);
+                    setOptions(['>', '=', '<']);
+                }
+                else if (mode === 'memory') {
+                    setMemoryCards(generateMemory());
+                    setFlippedIndices([]);
+                }
+            };
+
+            const handleStandardAnswer = (ans) => {
+                if(feedback) return;
+                handleInteraction();
+                
+                let correct = false;
+                if(screen === 'sign') correct = ans === question.op;
+                else if(screen === 'train') correct = ans === question.answer;
+                else if(screen === 'croc') correct = ans === question.rel;
+                else correct = ans === question.a;
+
+                if(correct) {
+                    playSound('correct');
+                    setScore(s => s + 10);
+                    setPraise(getPraise());
+                    setFeedback('correct');
+                    setMonsterMood('happy');
+                    setTimeout(() => nextLevel(screen), 1500); 
+                } else {
+                    playSound('wrong');
+                    setFeedback('wrong');
+                    setMonsterMood('sad');
+                    setTimeout(() => { setFeedback(null); setMonsterMood('neutral'); }, 800);
+                }
+            };
+
+            const handleMemoryClick = (idx) => {
+                if(flippedIndices.length >= 2 || memoryCards[idx].flipped || memoryCards[idx].matched) return;
+                
+                handleInteraction();
+                playSound('flip');
+                
+                const newCards = [...memoryCards];
+                newCards[idx].flipped = true;
+                setMemoryCards(newCards);
+                
+                const newFlipped = [...flippedIndices, idx];
+                setFlippedIndices(newFlipped);
+                
+                if(newFlipped.length === 2) {
+                    const [idx1, idx2] = newFlipped;
+                    if(newCards[idx1].val === newCards[idx2].val) {
+                        setTimeout(() => {
+                            playSound('correct');
+                            newCards[idx1].matched = true;
+                            newCards[idx2].matched = true;
+                            setMemoryCards([...newCards]);
+                            setFlippedIndices([]);
+                            setScore(s => s + 20);
+                            if(newCards.every(c => c.matched)) {
+                                setPraise('All Match!');
+                                setFeedback('correct');
+                                setTimeout(() => nextLevel('memory'), 2000);
+                            }
+                        }, 500);
+                    } else {
+                        setTimeout(() => {
+                            playSound('wrong');
+                            newCards[idx1].flipped = false;
+                            newCards[idx2].flipped = false;
+                            setMemoryCards([...newCards]);
+                            setFlippedIndices([]);
+                        }, 1000);
+                    }
+                }
+            };
+
+            const goHome = () => {
+                playSound('pop');
+                if (score > highScore) setHighScore(score);
+                setScreen('menu');
+            };
+
+            // --- Renders ---
+
+            const renderHeader = (color) => (
+                <div className="w-full flex justify-between items-center mb-6 px-2 max-w-2xl mx-auto">
+                <button onClick={goHome} className="p-2 bg-white rounded-full shadow hover:bg-gray-100"><IconHome size={20} className="md:w-6 md:h-6"/></button>
+                <div className={`text-xl md:text-2xl font-black ${color} bg-white px-4 md:px-6 py-1 rounded-full shadow border-2 border-gray-100`}>{score}</div>
+                <button onClick={() => setIsMuted(!isMuted)} className="p-2 bg-white rounded-full shadow hover:bg-gray-100">
+                    {isMuted ? <IconVolumeX size={20} className="md:w-6 md:h-6"/> : <IconVolume2 size={20} className="md:w-6 md:h-6"/>}
+                </button>
+                </div>
+            );
+
+            const renderModal = () => {
+                if (!activeModal) return null;
+                let title = "", content = null;
+
+                switch(activeModal) {
+                    case 'privacy':
+                        title = "Privacy Policy";
+                        content = (<div className="space-y-2 text-sm text-gray-600"><p><strong>Effective Date: 2024</strong></p><p>We value your privacy. This application does not collect, store, or share any personal data.</p><p>The app runs entirely locally on your device.</p></div>);
+                        break;
+                    case 'contact':
+                        title = "Contact Us";
+                        content = (<div className="text-center text-gray-600"><IconMail size={48} className="mx-auto text-indigo-400 mb-2"/><p>Have questions or suggestions?</p><p className="font-bold mt-2">Best247team@Gmail.com</p><p className="text-xs mt-4">We'd love to hear from you!</p></div>);
+                        break;
+                    case 'about':
+                        title = "About Us";
+                        content = (<div className="text-sm text-gray-600"><p>Math Kids Zone was created to make learning math numbers, addition, and logic fun for children ages 4-8.</p></div>);
+                        break;
+                    case 'how':
+                        title = "How to Play";
+                        content = (<div className="text-sm text-gray-600 space-y-2"><p><strong>🎈 Balloon Pop:</strong> Click correct answer.</p><p><strong>❓ Mystery Sign:</strong> Find + or -.</p><p><strong>👾 Feed Monster:</strong> Give correct number.</p><p><strong>🧠 Memory:</strong> Match equation to answer.</p></div>);
+                        break;
+                    case 'parents':
+                        title = "Parents Guide";
+                        content = (<div className="text-sm text-gray-600"><p>Follows <strong>Common Core Math Standards</strong>.</p><div className="mt-2 bg-indigo-50 p-3 rounded-lg"><p className="font-bold text-indigo-700">Tips:</p><ul className="list-disc pl-5 mt-1 text-xs"><li>Encourage saying numbers loud.</li><li>Play "Compare Croc".</li></ul></div></div>);
+                        break;
+                    case 'benefits':
+                        title = "Benefits";
+                        content = (<div className="grid grid-cols-2 gap-2 text-xs text-gray-600"><div className="bg-green-50 p-2 rounded">✅ Improved Focus</div><div className="bg-blue-50 p-2 rounded">✅ Faster Calculation</div><div className="bg-purple-50 p-2 rounded">✅ Logical Reasoning</div><div className="bg-orange-50 p-2 rounded">✅ Visual Memory</div></div>);
+                        break;
+                }
+                return (
+                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-fade-in">
+                        <div className="bg-indigo-500 p-4 flex justify-between items-center text-white">
+                            <h3 className="font-bold text-lg">{title}</h3>
+                            <button onClick={() => setActiveModal(null)}><IconX size={24}/></button>
+                        </div>
+                        <div className="p-6">{content}</div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderMenu = () => (
+                <div className="min-h-screen bg-indigo-50 font-sans flex flex-col items-center relative pb-10">
+                    <div className="p-4 w-full flex flex-col items-center">
+                        <h1 className="text-4xl md:text-5xl font-extrabold text-indigo-600 mb-2 mt-4 text-center">Math Zone</h1>
+                        <p className="text-indigo-400 mb-6 text-center">Learn, Play & Win!</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
+                            {[{ id: 'balloon', icon: '🎈', title: 'Balloon Pop', color: 'blue' },{ id: 'sign', icon: '❓', title: 'Mystery Sign', color: 'purple' },{ id: 'monster', icon: '👾', title: 'Feed Monster', color: 'green' },{ id: 'memory', icon: '🧠', title: 'Memory Match', color: 'orange' },{ id: 'train', icon: '🚂', title: 'Train Ride', color: 'pink' },{ id: 'croc', icon: '🐊', title: 'Compare Croc', color: 'teal' }].map(game => (
+                                <button key={game.id} onClick={() => startGame(game.id)} className={`bg-white rounded-2xl p-4 shadow-lg border-b-4 border-${game.color}-500 active:border-b-0 active:translate-y-1 transition-all flex items-center gap-3`}><div className={`bg-${game.color}-100 p-3 rounded-full text-3xl`}>{game.icon}</div><div className="text-left"><h3 className="text-xl font-bold text-gray-800">{game.title}</h3></div></button>
+                            ))}
+                        </div>
+                        <div className="mt-8 bg-yellow-100 text-yellow-800 px-6 py-2 rounded-full font-bold flex gap-2 mb-12"><IconTrophy size={20}/> Best: {highScore}</div>
+                    </div>
+                    <footer className="w-full bg-indigo-100 py-8 px-4 mt-auto">
+                        <div className="max-w-4xl mx-auto">
+                            <div className="flex flex-wrap justify-center gap-4 mb-6">
+                                <button onClick={() => setActiveModal('how')} className="flex items-center gap-1 text-sm font-bold text-indigo-600 bg-white px-3 py-1.5 rounded-full shadow hover:bg-indigo-50"><IconHelp size={16}/> How to Play</button>
+                                <button onClick={() => setActiveModal('benefits')} className="flex items-center gap-1 text-sm font-bold text-indigo-600 bg-white px-3 py-1.5 rounded-full shadow hover:bg-indigo-50"><IconHeart size={16}/> Benefits</button>
+                                <button onClick={() => setActiveModal('parents')} className="flex items-center gap-1 text-sm font-bold text-indigo-600 bg-white px-3 py-1.5 rounded-full shadow hover:bg-indigo-50"><IconBook size={16}/> Parents Guide</button>
+                            </div>
+                            <div className="flex flex-wrap justify-center gap-6 text-xs text-indigo-400 font-medium mb-6">
+                                <button onClick={() => setActiveModal('about')} className="hover:text-indigo-600 transition-colors">About Us</button>
+                                <button onClick={() => setActiveModal('contact')} className="hover:text-indigo-600 transition-colors">Contact Us</button>
+                                <button onClick={() => setActiveModal('privacy')} className="flex items-center gap-1 hover:text-indigo-600 transition-colors"><IconShield size={12}/> Privacy Policy</button>
+                            </div>
+                            <div className="border-t border-indigo-200 pt-6 text-center">
+                                <p className="text-[10px] text-indigo-300 leading-relaxed max-w-2xl mx-auto">Welcome to the ultimate <strong>Math Zone for Kids</strong>! ... <strong>Montessori-style learning</strong>, <strong>STEM activities</strong> ... Safe, ad-free.</p>
+                                <p className="text-[10px] text-indigo-300 mt-2">© 2024 Math Kids Zone. All Rights Reserved.</p>
+                            </div>
+                        </div>
+                    </footer>
+                    {renderModal()}
+                </div>
+            );
+
+            // Game Renders
+            const renderBalloon = () => (<div className="min-h-screen bg-blue-50 p-4 flex flex-col items-center overflow-hidden">{renderHeader('text-blue-500')}<div className="bg-white px-8 py-4 rounded-2xl shadow-xl border-4 border-blue-200 mb-8 md:mb-12 mt-4"><span className="text-3xl md:text-5xl font-black text-gray-800">{question?.q} = ?</span></div><div className="flex flex-wrap gap-4 justify-center items-end flex-grow pb-12 w-full">{options.map((opt, i) => (<button key={i} onClick={() => handleStandardAnswer(opt)} className={`w-20 h-28 md:w-24 md:h-32 rounded-[50%_50%_50%_50%_/_60%_60%_40%_40%] flex items-center justify-center text-2xl md:text-3xl font-black text-white shadow-lg relative ${i===0?'bg-red-400':i===1?'bg-yellow-400':'bg-green-400'} transition-transform hover:-translate-y-2 ${feedback==='wrong' && opt!==question.a ? 'opacity-30':''}`} style={{animation: `bounce ${3+i}s infinite ease-in-out`}}>{opt}<div className="absolute -bottom-8 left-1/2 w-0.5 h-8 bg-gray-400"/></button>))}</div><style>{`@keyframes bounce {0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}`}</style></div>);
+            
+            const renderSign = () => (<div className="min-h-screen bg-purple-50 p-4 flex flex-col items-center">{renderHeader('text-purple-600')}<h2 className="text-purple-400 font-bold mb-8 tracking-widest uppercase">What's Missing?</h2><div className="flex gap-2 bg-white p-4 md:p-6 rounded-3xl shadow-xl items-center mb-12"><span className="text-3xl md:text-5xl font-black text-gray-700">{question?.num1}</span><div className="w-12 h-12 md:w-16 md:h-16 bg-gray-100 rounded-lg flex items-center justify-center border-4 border-dashed border-gray-300 text-2xl md:text-3xl text-gray-400">?</div><span className="text-3xl md:text-5xl font-black text-gray-700">{question?.num2}</span><span className="text-3xl md:text-5xl font-black text-purple-500">=</span><span className="text-3xl md:text-5xl font-black text-purple-600">{question?.ans}</span></div><div className="flex gap-4 md:gap-6">{options.map((opt, i) => (<button key={i} onClick={() => handleStandardAnswer(opt)} className="w-20 h-20 md:w-24 md:h-24 bg-white rounded-2xl shadow border-b-4 border-purple-500 text-4xl md:text-6xl font-black text-gray-800 active:translate-y-1 active:border-b-0">{opt}</button>))}</div></div>);
+            
+            const renderMonster = () => (<div className="min-h-screen bg-green-50 p-4 flex flex-col items-center">{renderHeader('text-green-600')}<Monster mood={monsterMood} /><div className="bg-white p-4 rounded-2xl shadow border-4 border-green-200 mt-6 mb-8 relative"><div className="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-l-transparent border-r-transparent border-b-8 border-b-green-200"/><p className="text-center text-gray-500 text-xs font-bold uppercase">Hungry for</p><p className="text-3xl md:text-4xl font-black text-gray-800">{question?.q}</p></div><div className="flex gap-4 flex-wrap justify-center">{options.map((opt, i) => (<button key={i} onClick={() => handleStandardAnswer(opt)} className="flex flex-col items-center group active:scale-95 transition-transform"><div className="text-4xl mb-2 filter drop-shadow-md group-hover:scale-110 transition-transform">{i===0?'🍔':i===1?'🍎':'🍕'}</div><div className="bg-white px-4 py-2 rounded-lg font-black text-2xl shadow text-gray-700">{opt}</div></button>))}</div></div>);
+            
+            const renderMemory = () => (<div className="min-h-screen bg-orange-50 p-4 flex flex-col items-center">{renderHeader('text-orange-500')}<h2 className="text-orange-400 font-bold mb-6 tracking-widest uppercase">Find Pairs</h2><div className="grid grid-cols-2 md:grid-cols-3 gap-4">{memoryCards.map((card, i) => (<button key={i} onClick={() => handleMemoryClick(i)} className={`w-24 h-24 md:w-28 md:h-28 rounded-xl shadow-md text-2xl md:text-3xl font-black transition-all duration-300 transform ${card.flipped || card.matched ? 'bg-white rotate-0 text-gray-800' : 'bg-orange-400 rotate-y-180 text-transparent'} ${card.matched ? 'border-4 border-green-400' : ''}`}>{(card.flipped || card.matched) ? card.content : '❓'}</button>))}</div></div>);
+            
+            const renderTrain = () => (<div className="min-h-screen bg-pink-50 p-4 flex flex-col items-center justify-start">{renderHeader('text-pink-600')}<div className="mt-8 flex items-end gap-1 overflow-x-auto max-w-full p-4 w-full justify-center"><div className="flex flex-col items-center flex-shrink-0"><div className="w-6 h-10 md:w-8 md:h-12 bg-gray-700 rounded-t-md relative"><div className="absolute -top-4 left-1 w-6 h-4 bg-gray-400 rounded-full opacity-50 animate-ping"/></div><div className="w-16 h-12 md:w-20 md:h-16 bg-pink-500 rounded-md flex items-center justify-center text-2xl md:text-3xl border-b-4 border-pink-700">🚂</div><div className="flex gap-2 mt-1"><div className="w-3 h-3 md:w-4 md:h-4 bg-black rounded-full"/><div className="w-3 h-3 md:w-4 md:h-4 bg-black rounded-full"/></div></div>{question?.sequence.map((val, i) => (<div key={i} className="flex flex-col items-center flex-shrink-0"><div className="w-12 h-12 md:w-16 md:h-16 bg-pink-400 rounded-md flex items-center justify-center text-xl md:text-2xl font-black text-white border-b-4 border-pink-600 shadow relative">{val}<div className="absolute -left-1 top-1/2 w-2 h-1 bg-black"/></div><div className="flex gap-2 mt-1"><div className="w-3 h-3 md:w-4 md:h-4 bg-black rounded-full"/><div className="w-3 h-3 md:w-4 md:h-4 bg-black rounded-full"/></div></div>))}</div><div className="mt-12 flex gap-4 md:gap-6">{options.map((opt, i) => (<button key={i} onClick={() => handleStandardAnswer(opt)} className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white shadow-lg text-xl md:text-2xl font-black text-pink-600 border-2 border-pink-100 hover:bg-pink-100 active:scale-90 transition-transform">{opt}</button>))}</div></div>);
+
+            const renderCroc = () => (<div className="min-h-screen bg-teal-50 p-4 flex flex-col items-center">{renderHeader('text-teal-600')}<div className="mt-4 mb-8 text-center"><h2 className="text-teal-500 font-bold mb-2 uppercase">Who is Bigger?</h2><div className="flex items-center justify-center gap-4 md:gap-6 text-3xl md:text-5xl font-black text-gray-700"><div className="bg-white p-4 md:p-6 rounded-2xl shadow w-24 md:w-32">{question?.v1}</div><div className="text-xl md:text-2xl text-teal-300">vs</div><div className="bg-white p-4 md:p-6 rounded-2xl shadow w-24 md:w-32">{question?.v2}</div></div></div><div className="flex gap-4">{options.map((opt, i) => (<button key={i} onClick={() => handleStandardAnswer(opt)} className="w-16 h-16 md:w-20 md:h-20 bg-teal-500 text-white rounded-xl text-3xl md:text-5xl font-black shadow-lg border-b-4 border-teal-700 active:border-b-0 active:translate-y-1 hover:bg-teal-400">{opt}</button>))}</div><div className="mt-8 text-6xl">🐊</div></div>);
+
+            return (
+                <>
+                    {screen === 'menu' && renderMenu()}
+                    {feedback === 'correct' && <Celebration text={praise} />}
+                    {screen === 'balloon' && renderBalloon()}
+                    {screen === 'sign' && renderSign()}
+                    {screen === 'monster' && renderMonster()}
+                    {screen === 'memory' && renderMemory()}
+                    {screen === 'train' && renderTrain()}
+                    {screen === 'croc' && renderCroc()}
+                </>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<MathKidsZone />);
+    </script>
+</body>
+</html>
+
+
